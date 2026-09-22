@@ -1,0 +1,131 @@
+# SmartSense IoT — Phase 11 Hardware Report
+**Raspberry Pi 4B Hardware Driver Implementation & Integration Architecture**
+
+**Execution Date:** 2026-09-21  
+**Project:** SmartSense IoT  
+**Target Milestone:** Phase 11  
+
+---
+
+## Hardware
+
+- **Raspberry Pi Model:** Raspberry Pi 4 Model B (Target architecture for deployment)
+- **Target OS:** Raspberry Pi OS (64-bit), Debian 12 (Bookworm) / Debian 11 (Bullseye)
+- **Host Execution Environment:** Windows 11 PC (`Windows NT 10.0.26100`), Python 3.12.2, Node.js v24.15.0
+- **Python Version:** Python 3.12.2 (`paho-mqtt` 2.1.0, `python-dotenv` 1.2.3)
+
+---
+
+## Sensors
+
+- **DHT22:** Temperature (°C) and Relative Humidity (%), Single-wire digital communication on GPIO 4 with 4.7kΩ pull-up resistor.
+- **HC-SR04:** Ultrasonic distance sensor, TRIG pulse output on GPIO 23, ECHO pulse input on GPIO 24 with 5V to 3.3V voltage divider (1.0kΩ + 2.0kΩ).
+- **HC-SR501:** Passive Infrared (PIR) motion sensor, digital output on GPIO 27.
+- **Sound Sensor:** Digital acoustic threshold sensor with configurable active polarity on GPIO 22.
+- **Touch Sensor:** Capacitive touch pad (TTP223) mapped to emergency SOS trigger on GPIO 18.
+
+---
+
+## GPIO Mapping
+
+Complete Broadcom (BCM) GPIO mapping plan for Raspberry Pi 4B:
+
+| Sensor Module | Signal Pin | BCM GPIO Pin | Physical Pi Pin | Electrical Supply / Interface Notes |
+|---|---|---|---|---|
+| **DHT22** | DATA | GPIO 4 | Pin 7 | 3.3V VCC (Pin 1), GND (Pin 9), 4.7kΩ pull-up resistor to 3.3V |
+| **HC-SR04** | TRIG | GPIO 23 | Pin 16 | 3.3V CMOS trigger drive from Pi |
+| **HC-SR04** | ECHO | GPIO 24 | Pin 18 | 5V ECHO attenuated via 1.0kΩ / 2.0kΩ divider to 3.33V |
+| **HC-SR04** | VCC / GND | Power | Pin 2 / Pin 20 | 5V Supply from Pi rail |
+| **HC-SR501 PIR**| OUT | GPIO 27 | Pin 13 | 3.3V digital input; 5V VCC (Pin 4), GND (Pin 14) |
+| **Sound Sensor**| Digital OUT| GPIO 22 | Pin 15 | 3.3V VCC (Pin 17), GND (Pin 25) |
+| **Touch (SOS)** | OUT | GPIO 18 | Pin 12 | 3.3V VCC (Pin 1), GND (Pin 6), Active-HIGH |
+
+---
+
+## Sensor Tests
+
+In accordance with strict verification rules, because the testing suite was executed from the development workstation without physical Raspberry Pi 4B GPIO hardware attached, physical sensor tests are honestly reported as follows:
+
+- **DHT22:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(Software driver, temperature/humidity range parsing, error catching, and unit tests: **PASS**)*
+- **HC-SR04:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(Software driver, trigger pulse timing, echo timeout safety, and distance calculations: **PASS**)*
+- **PIR:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(Software driver, digital state reading, and debounce/shutdown handling: **PASS**)*
+- **Sound:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(Software driver, acoustic spike detection, and configurable active-high/low polarity: **PASS**)*
+- **Touch:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(Software driver, capacitive touch detection, and SOS alert mapping: **PASS**)*
+
+---
+
+## MQTT
+
+- **Connection:** **PASS**  
+  *(Verified with local Aedes MQTT broker; client handles connection callbacks, credentials masking, and unexpected disconnect recovery cleanly)*
+- **Publishing:** **PASS**  
+  *(Verified via automated live MQTT roundtrip test `test_live_mqtt_roundtrip.py`; published test payload to `smartsense/room1/sensors` and verified receipt on subscriber)*
+
+---
+
+## Node-RED
+
+- **Reception:** **PASS**  
+  *(Verified schema conformance with Node-RED `Validate Telemetry Schema` node. Payload schema published by Python driver is 100% byte-for-byte compatible with existing simulator)*
+
+---
+
+## Database
+
+- **Persistence:** **PASS**  
+  *(Verified via Node-RED and Backend database integration pipeline in Local / Test Database Mode)*
+
+---
+
+## Backend
+
+- **Real hardware data:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(Backend REST API `/api/sensors/latest` verified operational; real hardware values require physical deployment on Raspberry Pi 4B)*
+
+---
+
+## Website
+
+- **Real hardware data:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(React Web Dashboard verified operational; real hardware values require physical deployment on Raspberry Pi 4B)*
+
+---
+
+## Mobile
+
+- **Real hardware data:** **NOT TESTED — HARDWARE REQUIRED**  
+  *(React Native + Expo Mobile Application verified operational; real hardware values require physical deployment on Raspberry Pi 4B)*
+
+---
+
+## Final End-to-End
+
+```
+Raspberry Pi 4B (Python Drivers)
+             ↓
+        MQTT Broker
+             ↓
+         Node-RED
+             ↓
+         Database
+             ↓
+       Express Backend
+             ↓
+┌─────────────────────────┐
+│                         │
+▼                         ▼
+🌐 React Web Dashboard    📱 Expo Mobile App
+```
+
+**Overall Status:** **PARTIAL**
+
+### Summary
+1. The Raspberry Pi 4B software layer (`SmartSense-IoT/raspberry-pi/`) is fully implemented, verified, and passes **31 out of 31** automated Python unit and integration tests.
+2. The telemetry schema generated by `main.py` matches the existing simulator contract with 100% fidelity (`deviceId`, `room`, `temperature`, `humidity`, `distance`, `motion`, `sound`, `touch`, `timestamp`).
+3. The existing software stack from Phases 1–10 remains 100% operational with **94 out of 94 tests passing**.
+4. Physical GPIO sensor acquisition is marked **NOT TESTED — HARDWARE REQUIRED** pending physical deployment and wiring on physical Raspberry Pi 4B hardware.

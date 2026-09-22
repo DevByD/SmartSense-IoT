@@ -1,0 +1,10 @@
+# Core SmartSense Raspberry Pi Dependencies
+paho-mqtt>=2.0.0
+python-dotenv>=1.0.0
+
+# Hardware GPIO and Sensor Drivers (Used when running on Raspberry Pi OS Linux)
+# On Raspberry Pi OS Bookworm (Debian 12+), these can also be installed via apt:
+# sudo apt install -y python3-rpi.gpio python3-gpiozero python3-libgpiod
+RPi.GPIO>=0.7.1; sys_platform == 'linux'
+gpiozero>=2.0.0; sys_platform == 'linux'
+adafruit-circuitpython-dht>=4.0.0; sys_platform == 'linux'

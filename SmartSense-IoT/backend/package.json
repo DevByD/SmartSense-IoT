@@ -1,0 +1,28 @@
+{
+  "name": "smartsense-backend",
+  "version": "1.0.0",
+  "description": "SmartSense IoT - Node.js Express REST API backend for environmental and security monitoring",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test --test-concurrency=1 test/**/*.test.mjs"
+  },
+  "keywords": [
+    "smartsense",
+    "iot",
+    "express",
+    "firebase",
+    "rest-api"
+  ],
+  "author": "SmartSense IoT Team",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.0.0",
+    "helmet": "^7.1.0"
+  }
+}

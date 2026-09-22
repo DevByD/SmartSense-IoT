@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "SmartSense IoT",
+    "slug": "smartsense-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.smartsense.iot"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "smartsense-iot"
+      }
+    }
+  }
+}

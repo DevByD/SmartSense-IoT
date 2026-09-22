@@ -1,0 +1,38 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "devices": {
+      ".read": "auth != null",
+      "$deviceId": {
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['deviceId', 'room', 'status', 'lastSeen'])"
+      }
+    },
+    "latest": {
+      ".read": "auth != null",
+      "$deviceId": {
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['deviceId', 'room', 'temperature', 'humidity', 'distance', 'motion', 'sound', 'touch', 'timestamp'])"
+      }
+    },
+    "readings": {
+      ".read": "auth != null",
+      "$deviceId": {
+        ".write": "auth != null",
+        ".indexOn": ["timestamp"],
+        "$readingId": {
+          ".validate": "newData.hasChildren(['deviceId', 'room', 'temperature', 'humidity', 'distance', 'motion', 'sound', 'touch', 'timestamp'])"
+        }
+      }
+    },
+    "alerts": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["timestamp", "severity", "acknowledged"],
+      "$alertId": {
+        ".validate": "newData.hasChildren(['alertId', 'deviceId', 'room', 'type', 'severity', 'message', 'timestamp', 'acknowledged'])"
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "smartsense-simulator",
+  "version": "1.0.0",
+  "description": "Realistic Multi-Sensor Telemetry Simulator & MQTT Gateway for SmartSense IoT",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "simulate": "node src/index.js",
+    "simulate:motion": "node src/index.js --scenario motion",
+    "simulate:sos": "node src/index.js --scenario sos",
+    "simulate:temperature": "node src/index.js --scenario temperature",
+    "simulate:object": "node src/index.js --scenario object",
+    "simulate:sound": "node src/index.js --scenario sound",
+    "mqtt:broker": "node src/mqtt/broker.js",
+    "mqtt:subscribe": "node src/mqtt/subscriber.js",
+    "mqtt:publish": "node src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "aedes": "^0.51.2",
+    "dotenv": "^16.4.5",
+    "mqtt": "^5.10.1"
+  },
+  "keywords": [
+    "iot",
+    "simulator",
+    "telemetry",
+    "mqtt",
+    "smartsense",
+    "sensors"
+  ],
+  "author": "SmartSense Team",
+  "license": "ISC"
+}

@@ -1,0 +1,42 @@
+{
+  "name": "smartsense-mobile",
+  "version": "1.0.0",
+  "description": "SmartSense IoT Mobile Application - React Native + Expo client for environmental and security monitoring",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "node --import ./test/register-jsx.mjs --test test/**/*.test.mjs"
+  },
+  "keywords": [
+    "smartsense",
+    "iot",
+    "react-native",
+    "expo",
+    "mobile"
+  ],
+  "author": "SmartSense IoT Team",
+  "license": "ISC",
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.16",
+    "@expo/vector-icons": "^14.0.4",
+    "@react-navigation/bottom-tabs": "^7.2.0",
+    "@react-navigation/native": "^7.0.14",
+    "@react-navigation/native-stack": "^7.2.0",
+    "expo": "~57.0.24",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "^5.2.0",
+    "react-native-screens": "^4.4.0",
+    "react-native-svg": "^15.11.2",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.1",
+    "react-dom": "^19.2.3"
+  },
+  "private": true
+}

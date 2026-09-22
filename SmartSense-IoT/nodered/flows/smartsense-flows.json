@@ -1,0 +1,766 @@
+[
+  {
+    "id": "tab_smartsense_core",
+    "type": "tab",
+    "label": "SmartSense IoT Core",
+    "disabled": false,
+    "info": "SmartSense IoT Stream Processing, Telemetry Validation, Alert Engine & Firebase Cloud Persistence"
+  },
+  {
+    "id": "mqtt_broker_local",
+    "type": "mqtt-broker",
+    "name": "Local MQTT Broker",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "smartsense-nodered-engine",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true
+  },
+  {
+    "id": "comment_sec_1",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 1: MQTT TELEMETRY INGESTION ===",
+    "info": "Subscribes to smartsense/room1/sensors and parses raw JSON string",
+    "x": 230,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "node_mqtt_in",
+    "type": "mqtt in",
+    "z": "tab_smartsense_core",
+    "name": "Subscribe: smartsense/room1/sensors",
+    "topic": "smartsense/room1/sensors",
+    "qos": "0",
+    "datatype": "utf8",
+    "broker": "mqtt_broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "x": 200,
+    "y": 120,
+    "wires": [
+      [
+        "debug_raw_telemetry",
+        "node_json_parse"
+      ]
+    ]
+  },
+  {
+    "id": "debug_raw_telemetry",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] RAW TELEMETRY",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 510,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "node_json_parse",
+    "type": "json",
+    "z": "tab_smartsense_core",
+    "name": "Parse JSON Payload",
+    "property": "payload",
+    "action": "obj",
+    "pretty": false,
+    "x": 480,
+    "y": 140,
+    "wires": [
+      [
+        "node_validator"
+      ]
+    ]
+  },
+  {
+    "id": "comment_sec_2",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 2: TELEMETRY VALIDATION ===",
+    "info": "Strict contract schema validator verifying all 6 sensors, types, ranges and timestamps",
+    "x": 210,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "node_validator",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Validate Telemetry Schema",
+    "func": "// Validation rule: Reject payloads missing required telemetry contract fields\nconst p = msg.payload;\n\nif (!p || typeof p !== 'object') {\n    node.error(\"Payload is not a valid object\", msg);\n    msg.errorReason = \"Payload must be a non-null JSON object\";\n    return [null, msg]; // Port 2 = invalid\n}\n\nconst errors = [];\nif (!p.deviceId || typeof p.deviceId !== 'string') errors.push(\"deviceId missing or invalid string\");\nif (!p.room || typeof p.room !== 'string') errors.push(\"room missing or invalid string\");\nif (typeof p.temperature !== 'number' || isNaN(p.temperature)) errors.push(\"temperature missing or not a number\");\nif (typeof p.humidity !== 'number' || isNaN(p.humidity)) errors.push(\"humidity missing or not a number\");\nif (typeof p.distance !== 'number' || isNaN(p.distance) || p.distance < 0) errors.push(\"distance missing or negative number\");\nif (typeof p.motion !== 'boolean') errors.push(\"motion missing or not boolean\");\nif (typeof p.sound !== 'boolean') errors.push(\"sound missing or not boolean\");\nif (typeof p.touch !== 'boolean') errors.push(\"touch missing or not boolean\");\nif (!p.timestamp || isNaN(new Date(p.timestamp).getTime())) errors.push(\"timestamp missing or invalid date\");\n\nif (errors.length > 0) {\n    msg.errorReason = errors.join(\"; \");\n    msg.invalidPayload = p;\n    node.warn(\"Invalid telemetry rejected: \" + msg.errorReason);\n    return [null, msg]; // Port 2 = invalid path\n}\n\n// Port 1 = valid telemetry\nreturn [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 200,
+    "y": 260,
+    "wires": [
+      [
+        "debug_validated",
+        "node_normalizer_processor"
+      ],
+      [
+        "debug_invalid_telemetry"
+      ]
+    ]
+  },
+  {
+    "id": "debug_validated",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] VALIDATED DATA",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 510,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "debug_invalid_telemetry",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] REJECTED INVALID TELEMETRY",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 550,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "comment_sec_3",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 3: NORMALIZATION & SENSOR PROCESSING ===",
+    "info": "Computes readable states (NORMAL, WARNING, CRITICAL, DETECTED, SOS) and injects timestamps",
+    "x": 260,
+    "y": 340,
+    "wires": []
+  },
+  {
+    "id": "node_normalizer_processor",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Normalize & Compute Sensor Statuses",
+    "func": "// Normalizes incoming payload and assigns readable status classifications\nconst p = msg.payload;\n\n// Configurable thresholds from global context or defaults\nconst globalContext = global.get('functionGlobalContext') || {};\nconst TEMP_WARN = globalContext.TEMP_WARNING_THRESHOLD || 32.0;\nconst TEMP_CRIT = globalContext.TEMP_CRITICAL_THRESHOLD || 35.0;\nconst HUM_WARN = globalContext.HUMIDITY_WARNING_THRESHOLD || 75.0;\nconst DIST_NEAR = globalContext.DISTANCE_ALERT_THRESHOLD || 15.0;\n\n// 1. Temperature Status\nlet tempStatus = 'NORMAL';\nif (p.temperature >= TEMP_CRIT) tempStatus = 'CRITICAL';\nelse if (p.temperature >= TEMP_WARN) tempStatus = 'WARNING';\n\n// 2. Humidity Status\nlet humStatus = (p.humidity >= HUM_WARN) ? 'WARNING' : 'NORMAL';\n\n// 3. Distance Status\nlet distStatus = (p.distance < DIST_NEAR) ? 'NEAR' : 'NORMAL';\n\n// 4. Motion Status\nlet motionStatus = p.motion ? 'MOTION_DETECTED' : 'NO_MOTION';\n\n// 5. Sound Status\nlet soundStatus = p.sound ? 'SOUND_DETECTED' : 'NORMAL';\n\n// 6. Touch Status\nlet touchStatus = p.touch ? 'SOS_ACTIVE' : 'NORMAL';\n\n// Preserves original telemetry and enhances with normalization metadata\nmsg.payload = {\n    ...p,\n    receivedAt: new Date().toISOString(),\n    temperatureStatus: tempStatus,\n    humidityStatus: humStatus,\n    distanceStatus: distStatus,\n    motionStatus: motionStatus,\n    soundStatus: soundStatus,\n    touchStatus: touchStatus\n};\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 240,
+    "y": 400,
+    "wires": [
+      [
+        "node_alert_engine",
+        "node_device_status",
+        "node_cloud_prep",
+        "node_prep_fb_latest",
+        "node_prep_fb_reading"
+      ]
+    ]
+  },
+  {
+    "id": "comment_sec_4",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 4: ALERT ENGINE & DEBOUNCE ===",
+    "info": "Security Intrusion, SOS panic, Heat, Proximity, Sound alert rules with debounce",
+    "x": 210,
+    "y": 480,
+    "wires": []
+  },
+  {
+    "id": "node_alert_engine",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Alert Evaluation Engine",
+    "func": "// Alert Engine with security state verification and duplicate cooldown\nconst p = msg.payload;\n\n// Read security state (default DISARMED)\nconst securityMode = flow.get('securityMode') || 'DISARMED';\n\n// Read alert cooldown timestamps map\nlet cooldowns = flow.get('alertCooldowns') || {};\nconst now = Date.now();\nconst COOLDOWN_MS = (global.get('functionGlobalContext') || {}).ALERT_COOLDOWN_MS || 10000;\n\nfunction canTrigger(type) {\n    const lastTime = cooldowns[type] || 0;\n    if (now - lastTime >= COOLDOWN_MS) {\n        cooldowns[type] = now;\n        flow.set('alertCooldowns', cooldowns);\n        return true;\n    }\n    return false;\n}\n\nfunction makeAlert(type, severity, message) {\n    return {\n        alertId: 'alt-' + now + '-' + Math.floor(Math.random() * 1000),\n        deviceId: p.deviceId,\n        room: p.room,\n        type: type,\n        severity: severity,\n        message: message,\n        timestamp: new Date().toISOString()\n    };\n}\n\nconst generatedAlerts = [];\n\n// Rule 1: PIR Motion during ARMED security state\nif (securityMode === 'ARMED' && p.motion === true) {\n    if (canTrigger('MOTION_BREACH')) {\n        generatedAlerts.push(makeAlert('MOTION_BREACH', 'CRITICAL', 'Security Breach: Motion detected in ' + p.room + ' while system is ARMED!'));\n    }\n}\n\n// Rule 2: Capacitive Touch / SOS Key\nif (p.touch === true) {\n    if (canTrigger('SOS_ACTIVATED')) {\n        generatedAlerts.push(makeAlert('SOS_ACTIVATED', 'CRITICAL', 'Emergency SOS: Physical touch key activated in ' + p.room + '!'));\n    }\n}\n\n// Rule 3: Temperature Thresholds\nconst globalContext = global.get('functionGlobalContext') || {};\nconst TEMP_CRIT = globalContext.TEMP_CRITICAL_THRESHOLD || 35.0;\nconst TEMP_WARN = globalContext.TEMP_WARNING_THRESHOLD || 32.0;\n\nif (p.temperature >= TEMP_CRIT) {\n    if (canTrigger('HIGH_TEMP_CRITICAL')) {\n        generatedAlerts.push(makeAlert('HIGH_TEMPERATURE', 'CRITICAL', 'Critical Heat: ' + p.temperature + '°C exceeds emergency threshold (' + TEMP_CRIT + '°C)'));\n    }\n} else if (p.temperature >= TEMP_WARN) {\n    if (canTrigger('HIGH_TEMP_WARNING')) {\n        generatedAlerts.push(makeAlert('HIGH_TEMPERATURE', 'WARNING', 'High Temperature: ' + p.temperature + '°C exceeds warning threshold (' + TEMP_WARN + '°C)'));\n    }\n}\n\n// Rule 4: Ultrasonic Obstacle Proximity\nconst DIST_NEAR = globalContext.DISTANCE_ALERT_THRESHOLD || 15.0;\nif (p.distance < DIST_NEAR) {\n    if (canTrigger('CLOSE_OBJECT')) {\n        generatedAlerts.push(makeAlert('CLOSE_OBJECT', 'WARNING', 'Proximity Warning: Object detected at ' + p.distance + ' cm (Threshold: ' + DIST_NEAR + ' cm)'));\n    }\n}\n\n// Rule 5: Acoustic Sound Spike\nif (p.sound === true) {\n    if (canTrigger('SOUND_DETECTED')) {\n        generatedAlerts.push(makeAlert('SOUND_DETECTED', 'WARNING', 'Acoustic Alert: Sound event detected in ' + p.room + '.'));\n    }\n}\n\n// If alerts generated, send them out individually\nif (generatedAlerts.length > 0) {\n    const messages = generatedAlerts.map(a => ({\n        payload: a,\n        topic: 'smartsense/room1/alerts'\n    }));\n    return [messages];\n}\n\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 200,
+    "y": 540,
+    "wires": [
+      [
+        "debug_alert_generated",
+        "node_mqtt_out_alerts",
+        "node_prep_fb_alert"
+      ]
+    ]
+  },
+  {
+    "id": "debug_alert_generated",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] ALERT GENERATED",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 520,
+    "y": 500,
+    "wires": []
+  },
+  {
+    "id": "node_mqtt_out_alerts",
+    "type": "mqtt out",
+    "z": "tab_smartsense_core",
+    "name": "Publish: smartsense/room1/alerts",
+    "topic": "smartsense/room1/alerts",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 540,
+    "y": 550,
+    "wires": []
+  },
+  {
+    "id": "comment_sec_5",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 5: DEVICE STATUS TRACKER ===",
+    "info": "Maintains gateway lastSeen timestamp and online status",
+    "x": 210,
+    "y": 620,
+    "wires": []
+  },
+  {
+    "id": "node_device_status",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Update Device Status & LastSeen",
+    "func": "const p = msg.payload;\nconst securityMode = flow.get('securityMode') || 'DISARMED';\n\nconst statusObj = {\n    deviceId: p.deviceId,\n    room: p.room,\n    status: 'ONLINE',\n    securityMode: securityMode,\n    lastSeen: new Date().toISOString()\n};\n\nmsg.payload = statusObj;\nmsg.topic = 'smartsense/room1/status';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 220,
+    "y": 680,
+    "wires": [
+      [
+        "debug_device_status",
+        "node_mqtt_out_status",
+        "node_prep_fb_device"
+      ]
+    ]
+  },
+  {
+    "id": "debug_device_status",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] DEVICE STATUS",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 510,
+    "y": 640,
+    "wires": []
+  },
+  {
+    "id": "node_mqtt_out_status",
+    "type": "mqtt out",
+    "z": "tab_smartsense_core",
+    "name": "Publish: smartsense/room1/status",
+    "topic": "smartsense/room1/status",
+    "qos": "1",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_local",
+    "x": 540,
+    "y": 690,
+    "wires": []
+  },
+  {
+    "id": "comment_sec_6",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 6: CLOUD OUTPUT PREPARATION ===",
+    "info": "Prepares clean normalized telemetry for Phase 6 Firebase Cloud persistence",
+    "x": 230,
+    "y": 760,
+    "wires": []
+  },
+  {
+    "id": "node_cloud_prep",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Prepare Cloud Processed Telemetry",
+    "func": "const p = msg.payload;\n\nmsg.payload = {\n    ...p,\n    processedAt: new Date().toISOString()\n};\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 230,
+    "y": 820,
+    "wires": [
+      [
+        "debug_cloud_ready"
+      ]
+    ]
+  },
+  {
+    "id": "debug_cloud_ready",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] PROCESSED DATA",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 510,
+    "y": 820,
+    "wires": []
+  },
+  {
+    "id": "comment_sec_fb",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 7: FIREBASE CLOUD REALTIME DATABASE PERSISTENCE ===",
+    "info": "REST Integration to Firebase: latest/, readings/, devices/, alerts/",
+    "x": 290,
+    "y": 900,
+    "wires": []
+  },
+  {
+    "id": "node_prep_fb_latest",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Format Firebase Latest (PUT /latest/:id.json)",
+    "func": "const p = msg.payload;\nconst globalContext = global.get('functionGlobalContext') || {};\nlet baseUrl = (globalContext.FIREBASE_DATABASE_URL || 'http://localhost:9000').replace(/\\/$/, '');\nconst secret = globalContext.FIREBASE_DATABASE_SECRET;\nconst authQuery = secret ? '?auth=' + secret : '';\n\nmsg.url = baseUrl + '/latest/' + encodeURIComponent(p.deviceId) + '.json' + authQuery;\nmsg.method = 'PUT';\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    deviceId: p.deviceId,\n    room: p.room,\n    temperature: p.temperature,\n    humidity: p.humidity,\n    distance: p.distance,\n    motion: p.motion,\n    sound: p.sound,\n    touch: p.touch,\n    timestamp: p.timestamp,\n    processedAt: p.processedAt || new Date().toISOString()\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 250,
+    "y": 960,
+    "wires": [
+      [
+        "http_fb_latest"
+      ]
+    ]
+  },
+  {
+    "id": "http_fb_latest",
+    "type": "http request",
+    "z": "tab_smartsense_core",
+    "name": "HTTP: PUT /latest/:deviceId.json",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 620,
+    "y": 960,
+    "wires": [
+      [
+        "debug_fb_latest"
+      ]
+    ]
+  },
+  {
+    "id": "debug_fb_latest",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] FIREBASE LATEST SAVED",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 930,
+    "y": 960,
+    "wires": []
+  },
+  {
+    "id": "node_prep_fb_reading",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Format Firebase Reading (POST /readings/:id.json)",
+    "func": "const p = msg.payload;\nconst globalContext = global.get('functionGlobalContext') || {};\nlet baseUrl = (globalContext.FIREBASE_DATABASE_URL || 'http://localhost:9000').replace(/\\/$/, '');\nconst secret = globalContext.FIREBASE_DATABASE_SECRET;\nconst authQuery = secret ? '?auth=' + secret : '';\n\nmsg.url = baseUrl + '/readings/' + encodeURIComponent(p.deviceId) + '.json' + authQuery;\nmsg.method = 'POST'; // Firebase POST automatically generates a unique reading push ID\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    deviceId: p.deviceId,\n    room: p.room,\n    temperature: p.temperature,\n    humidity: p.humidity,\n    distance: p.distance,\n    motion: p.motion,\n    sound: p.sound,\n    touch: p.touch,\n    timestamp: p.timestamp,\n    processedAt: p.processedAt || new Date().toISOString()\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 260,
+    "y": 1020,
+    "wires": [
+      [
+        "http_fb_reading"
+      ]
+    ]
+  },
+  {
+    "id": "http_fb_reading",
+    "type": "http request",
+    "z": "tab_smartsense_core",
+    "name": "HTTP: POST /readings/:deviceId.json",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 630,
+    "y": 1020,
+    "wires": [
+      [
+        "debug_fb_reading"
+      ]
+    ]
+  },
+  {
+    "id": "debug_fb_reading",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] FIREBASE READING SAVED",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 940,
+    "y": 1020,
+    "wires": []
+  },
+  {
+    "id": "node_prep_fb_device",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Format Firebase Device (PATCH /devices/:id.json)",
+    "func": "const p = msg.payload;\nconst globalContext = global.get('functionGlobalContext') || {};\nlet baseUrl = (globalContext.FIREBASE_DATABASE_URL || 'http://localhost:9000').replace(/\\/$/, '');\nconst secret = globalContext.FIREBASE_DATABASE_SECRET;\nconst authQuery = secret ? '?auth=' + secret : '';\n\nmsg.url = baseUrl + '/devices/' + encodeURIComponent(p.deviceId) + '.json' + authQuery;\nmsg.method = 'PATCH';\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    deviceId: p.deviceId,\n    room: p.room,\n    status: p.status || 'ONLINE',\n    securityMode: p.securityMode || 'DISARMED',\n    lastSeen: p.lastSeen || new Date().toISOString()\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 260,
+    "y": 1080,
+    "wires": [
+      [
+        "http_fb_device"
+      ]
+    ]
+  },
+  {
+    "id": "http_fb_device",
+    "type": "http request",
+    "z": "tab_smartsense_core",
+    "name": "HTTP: PATCH /devices/:deviceId.json",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 630,
+    "y": 1080,
+    "wires": [
+      [
+        "debug_fb_device"
+      ]
+    ]
+  },
+  {
+    "id": "debug_fb_device",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] FIREBASE DEVICE SAVED",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 940,
+    "y": 1080,
+    "wires": []
+  },
+  {
+    "id": "node_prep_fb_alert",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Format Firebase Alert (PUT /alerts/:id.json)",
+    "func": "const a = msg.payload;\nconst globalContext = global.get('functionGlobalContext') || {};\nlet baseUrl = (globalContext.FIREBASE_DATABASE_URL || 'http://localhost:9000').replace(/\\/$/, '');\nconst secret = globalContext.FIREBASE_DATABASE_SECRET;\nconst authQuery = secret ? '?auth=' + secret : '';\n\nmsg.url = baseUrl + '/alerts/' + encodeURIComponent(a.alertId) + '.json' + authQuery;\nmsg.method = 'PUT';\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    alertId: a.alertId,\n    deviceId: a.deviceId,\n    room: a.room,\n    type: a.type,\n    severity: a.severity,\n    message: a.message,\n    timestamp: a.timestamp,\n    acknowledged: false\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 240,
+    "y": 1140,
+    "wires": [
+      [
+        "http_fb_alert"
+      ]
+    ]
+  },
+  {
+    "id": "http_fb_alert",
+    "type": "http request",
+    "z": "tab_smartsense_core",
+    "name": "HTTP: PUT /alerts/:alertId.json",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 610,
+    "y": 1140,
+    "wires": [
+      [
+        "debug_fb_alert"
+      ]
+    ]
+  },
+  {
+    "id": "debug_fb_alert",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] FIREBASE ALERT SAVED",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 930,
+    "y": 1140,
+    "wires": []
+  },
+  {
+    "id": "comment_sec_8",
+    "type": "comment",
+    "z": "tab_smartsense_core",
+    "name": "=== SECTION 8: SECURITY CONTROLS & MANUAL INJECTORS ===",
+    "info": "Arm / Disarm security mode and manual test inject buttons",
+    "x": 270,
+    "y": 1220,
+    "wires": []
+  },
+  {
+    "id": "inject_arm_system",
+    "type": "inject",
+    "z": "tab_smartsense_core",
+    "name": "ARM SYSTEM (Security Mode)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "ARMED",
+    "payloadType": "str",
+    "x": 210,
+    "y": 1280,
+    "wires": [
+      [
+        "node_set_security_mode"
+      ]
+    ]
+  },
+  {
+    "id": "inject_disarm_system",
+    "type": "inject",
+    "z": "tab_smartsense_core",
+    "name": "DISARM SYSTEM (Security Mode)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "0.5",
+    "topic": "",
+    "payload": "DISARMED",
+    "payloadType": "str",
+    "x": 220,
+    "y": 1340,
+    "wires": [
+      [
+        "node_set_security_mode"
+      ]
+    ]
+  },
+  {
+    "id": "node_set_security_mode",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Set Flow Security Mode",
+    "func": "const mode = msg.payload === 'ARMED' ? 'ARMED' : 'DISARMED';\nflow.set('securityMode', mode);\nnode.status({ fill: mode === 'ARMED' ? 'red' : 'green', shape: 'dot', text: 'MODE: ' + mode });\nmsg.payload = { securityMode: mode, updatedAt: new Date().toISOString() };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 510,
+    "y": 1310,
+    "wires": [
+      [
+        "debug_security_mode"
+      ]
+    ]
+  },
+  {
+    "id": "debug_security_mode",
+    "type": "debug",
+    "z": "tab_smartsense_core",
+    "name": "[DEBUG] SECURITY MODE CHANGED",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 800,
+    "y": 1310,
+    "wires": []
+  },
+  {
+    "id": "inject_clear_cooldowns",
+    "type": "inject",
+    "z": "tab_smartsense_core",
+    "name": "RESET ALERT COOLDOWNS",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "RESET",
+    "payloadType": "str",
+    "x": 200,
+    "y": 1400,
+    "wires": [
+      [
+        "node_reset_cooldowns"
+      ]
+    ]
+  },
+  {
+    "id": "node_reset_cooldowns",
+    "type": "function",
+    "z": "tab_smartsense_core",
+    "name": "Clear Alert Cooldown Map",
+    "func": "flow.set('alertCooldowns', {});\nmsg.payload = { message: 'Alert cooldowns cleared', timestamp: new Date().toISOString() };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 500,
+    "y": 1400,
+    "wires": [
+      [
+        "debug_security_mode"
+      ]
+    ]
+  }
+]

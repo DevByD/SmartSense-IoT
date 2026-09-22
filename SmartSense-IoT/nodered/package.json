@@ -1,0 +1,25 @@
+{
+  "name": "smartsense-nodered",
+  "version": "1.0.0",
+  "description": "Node-RED IoT Stream Processing and Alert Automation for SmartSense",
+  "main": "flows/smartsense-flows.json",
+  "scripts": {
+    "start": "node-red -u . -s config/settings.js flows/smartsense-flows.json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mqtt": "^5.10.1",
+    "node-red": "^4.0.5"
+  },
+  "keywords": [
+    "smartsense",
+    "node-red",
+    "iot",
+    "automation",
+    "mqtt",
+    "alert-engine"
+  ],
+  "author": "SmartSense Team",
+  "license": "ISC"
+}
