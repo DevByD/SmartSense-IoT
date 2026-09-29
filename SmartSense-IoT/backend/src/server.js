@@ -1,5 +1,6 @@
 import app from './app.js';
 import config from './config/env.js';
+import { connectMqtt, disconnectMqtt } from './services/mqtt.service.js';
 
 const server = app.listen(config.port, () => {
   console.log('====================================================');
@@ -17,9 +18,15 @@ const server = app.listen(config.port, () => {
   console.log('====================================================');
 });
 
+// Connect backend directly to HiveMQ
+connectMqtt();
+
 // Graceful shutdown handling
 const gracefulShutdown = (signal) => {
   console.log(`\n[API] Received ${signal}. Shutting down gracefully...`);
+
+  disconnectMqtt();
+
   server.close(() => {
     console.log('[API] HTTP server closed cleanly.');
     process.exit(0);

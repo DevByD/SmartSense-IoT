@@ -17,9 +17,12 @@ export class MqttPublisher {
     return new Promise((resolve) => {
       const options = {
         clientId: this.config.mqttClientId,
+        username: this.config.mqttUsername,
+        password: this.config.mqttPassword,
         clean: true,
         connectTimeout: this.config.mqttConnectTimeout,
         reconnectPeriod: this.config.mqttReconnectPeriod,
+        rejectUnauthorized: true,
       };
 
       try {
@@ -58,11 +61,17 @@ export class MqttPublisher {
 
         this.client.on('error', (err) => {
           this.isConnected = false;
+
           if (!this.hasLoggedInitialError) {
-            console.warn(`\n[MQTT WARNING] Broker unreachable at ${this.config.mqttBrokerUrl} (${err.code || err.message}).`);
-            console.warn('[MQTT WARNING] Simulator continuing in local standalone mode. Will auto-reconnect when broker is available.\n');
+            console.warn(
+              `\n[MQTT WARNING] Broker unreachable at ${this.config.mqttBrokerUrl} (${err.code || err.message}).`
+            );
+            console.warn(
+              '[MQTT WARNING] Simulator continuing in local standalone mode. Will auto-reconnect when broker is available.\n'
+            );
             this.hasLoggedInitialError = true;
           }
+
           resolve(false);
         });
 
@@ -70,7 +79,9 @@ export class MqttPublisher {
           this.isConnected = false;
         });
       } catch (err) {
-        console.warn(`[MQTT WARNING] Connection initialization error: ${err.message}`);
+        console.warn(
+          `[MQTT WARNING] Connection initialization error: ${err.message}`
+        );
         resolve(false);
       }
     });
@@ -89,10 +100,15 @@ export class MqttPublisher {
 
     this.client.publish(topic, payload, { qos: 0 }, (err) => {
       if (err) {
-        console.error(`[MQTT ERROR] Failed to publish telemetry to ${topic}:`, err.message);
+        console.error(
+          `[MQTT ERROR] Failed to publish telemetry to ${topic}:`,
+          err.message
+        );
       } else {
         const time = getFormattedTime(new Date(telemetry.timestamp));
-        console.log(`\x1b[32m[${time}] MQTT PUBLISHED\x1b[0m Topic: \x1b[36m${topic}\x1b[0m (${payload.length} bytes)`);
+        console.log(
+          `\x1b[32m[${time}] MQTT PUBLISHED\x1b[0m Topic: \x1b[36m${topic}\x1b[0m (${payload.length} bytes)`
+        );
       }
     });
 
@@ -111,7 +127,9 @@ export class MqttPublisher {
     this.client.publish(topic, payload, { qos: 1, retain: true }, (err) => {
       if (!err) {
         const time = getFormattedTime();
-        console.log(`\x1b[35m[${time}] MQTT STATUS PUBLISHED\x1b[0m Topic: ${topic}`);
+        console.log(
+          `\x1b[35m[${time}] MQTT STATUS PUBLISHED\x1b[0m Topic: ${topic}`
+        );
       }
     });
 
@@ -119,7 +137,7 @@ export class MqttPublisher {
   }
 
   /**
-   * Publish alert notification to smartsense/room1/alerts (prepared for Node-RED in Phase 5)
+   * Publish alert notification to smartsense/room1/alerts
    */
   publishAlert(alertData) {
     if (!this.isConnected || !this.client) return false;
@@ -129,8 +147,9 @@ export class MqttPublisher {
 
     this.client.publish(topic, payload, { qos: 1 }, (err) => {
       if (!err) {
-        const time = getFormattedTime();
-        console.log(`\x1b[31m[${time}] MQTT ALERT PUBLISHED\x1b[0m Topic: ${topic}`);
+        console.log(
+          `\x1b[31m[${getFormattedTime()}] MQTT ALERT PUBLISHED\x1b[0m Topic: ${topic}`
+        );
       }
     });
 

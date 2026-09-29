@@ -31,13 +31,15 @@ export const config = {
   distanceAlertThreshold: parseFloat(process.env.DISTANCE_ALERT_THRESHOLD || '15.0'),
 
   // MQTT Broker & Topic Configuration
-  mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
-  mqttSensorTopic: process.env.MQTT_SENSOR_TOPIC || 'smartsense/room1/sensors',
-  mqttAlertTopic: process.env.MQTT_ALERT_TOPIC || 'smartsense/room1/alerts',
-  mqttStatusTopic: process.env.MQTT_STATUS_TOPIC || 'smartsense/room1/status',
-  mqttClientId: process.env.MQTT_CLIENT_ID || `smartsense-sim-${Math.random().toString(16).substring(2, 8)}`,
-  mqttReconnectPeriod: 3000,
-  mqttConnectTimeout: 5000,
+mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
+mqttUsername: process.env.MQTT_USERNAME || 'smartsense',
+mqttPassword: process.env.MQTT_PASSWORD || 'Dharesh@2005',
+mqttSensorTopic: process.env.MQTT_SENSOR_TOPIC || 'smartsense/room1/sensors',
+mqttAlertTopic: process.env.MQTT_ALERT_TOPIC || 'smartsense/room1/alerts',
+mqttStatusTopic: process.env.MQTT_STATUS_TOPIC || 'smartsense/room1/status',
+mqttClientId: process.env.MQTT_CLIENT_ID || `smartsense-sim-${Math.random().toString(16).substring(2, 8)}`,
+mqttReconnectPeriod: 3000,
+mqttConnectTimeout: 5000,
 };
 
 export default config;

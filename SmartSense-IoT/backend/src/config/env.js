@@ -20,6 +20,12 @@ export const config = {
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
     privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : '',
   },
+    mqtt: {
+    brokerUrl: process.env.MQTT_BROKER_URL || '',
+    username: process.env.MQTT_USERNAME || '',
+    password: process.env.MQTT_PASSWORD || '',
+    sensorTopic: process.env.MQTT_SENSOR_TOPIC || 'smartsense/room1/sensors',
+  },
 };
 
 export default config;
